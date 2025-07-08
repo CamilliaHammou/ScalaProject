@@ -1,15 +1,13 @@
 package fr.esgi.al.funprog.ledpanel.models
 
-//classe rectangle
-case class Panel(width: Int, height: Int, leds: Map[(Int, Int), LED] = Map.empty) {
-  require(width > 0, "Width must be positive")
-  require(height > 0, "Height must be positive")
+//ici on repr un panneau led  rectangulaire
+case class Panel private(width: Int, height: Int, leds: Map[(Int, Int), LED]) {
   
-  //ici on verif si une position est valide
+  //verif si une pos est valide
   def isValidPosition(x: Int, y: Int): Boolean = 
     x >= 0 && x < height && y >= 0 && y < width
   
-  //on recup une led a une pos donnée
+  //recup une led a un pos deja donnée
   def getLED(x: Int, y: Int): Option[LED] = 
     if (isValidPosition(x, y)) {
       leds.get((x, y))
@@ -17,7 +15,7 @@ case class Panel(width: Int, height: Int, leds: Map[(Int, Int), LED] = Map.empty
       None
     }
   
-  //uptade la led
+  //update les led
   def updateLED(led: LED): Either[String, Panel] = {
     if (isValidPosition(led.x, led.y)) {
       Right(copy(leds = leds.updated((led.x, led.y), led)))
@@ -26,11 +24,11 @@ case class Panel(width: Int, height: Int, leds: Map[(Int, Int), LED] = Map.empty
     }
   }
   
-  //on recup tout les led aluumé
+  //recup toute les led alumé
   def getActiveLEDs: List[LED] = 
     leds.values.filter(_.isOn).toList
   
-  //on compte les leds par couleur
+  //compte les led par couleur
   def countByColor: Map[String, Int] = {
     val activeLEDs = getActiveLEDs
     Map(
@@ -41,17 +39,32 @@ case class Panel(width: Int, height: Int, leds: Map[(Int, Int), LED] = Map.empty
     )
   }
   
-  //on compte le nombre tototal de leds allumé
+  //nbr total de led allumé
   def totalActiveLEDs: Int = getActiveLEDs.length
 }
 
 object Panel {
-  def apply(width: Int, height: Int): Panel = {
-    val initialLEDs = (for {
-      x <- 0 until height
-      y <- 0 until width
-    } yield (x, y) -> LED(x, y)).toMap
-    
-    Panel(width, height, initialLEDs)
+  def create(width: Int, height: Int): Either[String, Panel] = {
+    if (width <= 0) {
+      Left("Width must be positive")
+    } else if (height <= 0) {
+      Left("Height must be positive")
+    } else {
+      val ledsResult = (for {
+        x <- 0 until height
+        y <- 0 until width
+      } yield {
+        LED.create(x, y).map(led => (x, y) -> led)
+      }).toList
+      
+      //on verif si erreur lors de la creation
+      val errors = ledsResult.collect { case Left(error) => error }
+      if (errors.nonEmpty) {
+        Left(s"Error creating LEDs: ${errors.head}")
+      } else {
+        val leds = ledsResult.collect { case Right(ledPair) => ledPair }.toMap
+        Right(Panel(width, height, leds))
+      }
+    }
   }
 }
