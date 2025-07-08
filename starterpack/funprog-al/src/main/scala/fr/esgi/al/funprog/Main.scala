@@ -10,7 +10,11 @@ import fr.esgi.al.funprog.ledpanel.errors.*
 
 @main
 def Main(): Unit = {
-  val inputPath = "input/example.txt"
+  //val inputPath = "input/example.txt"
+  //val inputPath = "input/test_simple.txt"
+  //val inputPath = "input/test_colors.txt"
+  //val inputPath = "input/test_rectangle.txt"
+  val inputPath = "input/test_switch.txt"
   
   val result = for {
     lines <- readFile(inputPath)
