@@ -122,4 +122,15 @@ object InstructionParser {
       } yield RectangleZone(pos1._1, pos1._2, pos2._1, pos2._2)
     }
   }
+  private def parsePositiveInt(str: String): Option[Int] = {
+    str.toIntOption.filter(_ > 0)
+  }
+
+  private def parseNonNegativeInt(str: String): Option[Int] = {
+    str.toIntOption.filter(_ >= 0)
+  }
+
+  private def parseZeroOrOne(str: String): Option[Int] = {
+    str.toIntOption.filter(i => i == 0 || i == 1)
+  }
 }
