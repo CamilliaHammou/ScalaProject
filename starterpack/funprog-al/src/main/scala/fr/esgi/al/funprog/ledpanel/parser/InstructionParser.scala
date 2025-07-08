@@ -1,5 +1,6 @@
 package fr.esgi.al.funprog.ledpanel.parser
 
+import scala.language.unsafeNulls
 import fr.esgi.al.funprog.ledpanel.models.*
 import fr.esgi.al.funprog.ledpanel.errors.*
 
@@ -11,27 +12,26 @@ object InstructionParser {
     val parts = trimmed.split(" x ")
     
     if (parts.length != 2) {
-      Left(InvalidDimensions(line))
+      Left[ParseError, (Int, Int)](InvalidDimensions(line))
     } else {
       val widthResult = parsePositiveInt(parts(0).trim)
       val heightResult = parsePositiveInt(parts(1).trim)
       
       (widthResult, heightResult) match {
-        case (Some(width), Some(height)) => Right((width, height))
-        case _ => Left(InvalidDimensions(line))
+        case (Some(width), Some(height)) => Right[ParseError, (Int, Int)]((width, height))
+        case _ => Left[ParseError, (Int, Int)](InvalidDimensions(line))
       }
     }
   }
-
   def parseInstruction(line: String): Either[ParseError, Instruction] = {
     val trimmed = line.trim
     if (trimmed.isEmpty) {
-      Left(InvalidInstruction(line, "Empty line"))
+      Left[ParseError, Instruction](InvalidInstruction(line, "Empty line"))
     } else {
       val parts = trimmed.split(" \\| ")
       
       if (parts.length != 4) {
-        Left(InvalidInstruction(line, "Must have 4 parts separated by |"))
+        Left[ParseError, Instruction](InvalidInstruction(line, "Must have 4 parts separated by |"))
       } else {
         for {
           time <- parseTime(parts(0).trim)
@@ -44,20 +44,19 @@ object InstructionParser {
       }
     }
   }
-
   private def parseTime(timeStr: String): Either[ParseError, Int] = {
     parsePositiveInt(timeStr) match {
-      case Some(time) => Right(time)
-      case None => Left(InvalidTime(timeStr))
+      case Some(time) => Right[ParseError, Int](time)
+      case None => Left[ParseError, Int](InvalidTime(timeStr))
     }
   }
 
   private def parseAction(actionStr: String): Either[ParseError, Action] = {
     actionStr match {
-      case "+" => Right(Action.Increment)
-      case "-" => Right(Action.Decrement)
-      case "%" => Right(Action.Switch)
-      case _ => Left(InvalidAction(actionStr))
+      case "+" => Right[ParseError, Action](Action.Increment)
+      case "-" => Right[ParseError, Action](Action.Decrement)
+      case "%" => Right[ParseError, Action](Action.Switch)
+      case _ => Left[ParseError, Action](InvalidAction(actionStr))
     }
   }
 
@@ -65,19 +64,21 @@ object InstructionParser {
     val parts = colorStr.split(",")
     
     if (parts.length != 3) {
-      Left(InvalidColor(colorStr))
+      Left[ParseError, Color](InvalidColor(colorStr))
     } else {
       val rgbResults = parts.map(part => parseZeroOrOne(part.trim))
       
       if (rgbResults.forall(_.isDefined)) {
-        val List(r, g, b) = rgbResults.map(_.get).toList
-        Color.create(r, g, b).left.map(_ => InvalidColor(colorStr))
+        rgbResults.toList match {
+          case Some(r) :: Some(g) :: Some(b) :: Nil =>
+            Color.create(r, g, b).left.map(_ => InvalidColor(colorStr))
+          case _ => Left[ParseError, Color](InvalidColor(colorStr))
+        }
       } else {
-        Left(InvalidColor(colorStr))
+        Left[ParseError, Color](InvalidColor(colorStr))
       }
     }
   }
-  
   //posit simple ou rectangle
   private def parseZone(zoneStr: String): Either[ParseError, Zone] = {
     if (zoneStr.contains(" - ")) {
@@ -86,20 +87,19 @@ object InstructionParser {
       parseSinglePosition(zoneStr)
     }
   }
-  
   //position simple x et y
   private def parseSinglePosition(posStr: String): Either[ParseError, Zone] = {
     val parts = posStr.split(",")
     
     if (parts.length != 2) {
-      Left(InvalidPosition(posStr))
+      Left[ParseError, Zone](InvalidPosition(posStr))
     } else {
       val xResult = parseNonNegativeInt(parts(0).trim)
       val yResult = parseNonNegativeInt(parts(1).trim)
       
       (xResult, yResult) match {
-        case (Some(x), Some(y)) => Right(SinglePosition(x, y))
-        case _ => Left(InvalidPosition(posStr))
+        case (Some(x), Some(y)) => Right[ParseError, Zone](SinglePosition(x, y))
+        case _ => Left[ParseError, Zone](InvalidPosition(posStr))
       }
     }
   }
@@ -108,7 +108,7 @@ object InstructionParser {
   private def parseRectangleZone(zoneStr: String): Either[ParseError, Zone] = {
     val parts = zoneStr.split(" - ")
     if (parts.length != 2) {
-      Left(InvalidPosition(zoneStr))
+      Left[ParseError, Zone](InvalidPosition(zoneStr))
     } else {
       for {
         pos1 <- parseSinglePosition(parts(0).trim).map {
@@ -122,6 +122,7 @@ object InstructionParser {
       } yield RectangleZone(pos1._1, pos1._2, pos2._1, pos2._2)
     }
   }
+  
   private def parsePositiveInt(str: String): Option[Int] = {
     str.toIntOption.filter(_ > 0)
   }

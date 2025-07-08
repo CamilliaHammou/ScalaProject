@@ -2,15 +2,15 @@ package fr.esgi.al.funprog.ledpanel.models
 
 //action sur l'intensité
 enum Action {
-  case Increment
-  case Decrement
-  case Switch// %
+  case Increment  // +
+  case Decrement  // -
+  case Switch     // %
 }
 
 //zone d'application d'une instruction
 sealed trait Zone
-case class SinglePosition(x: Int, y: Int) extends Zone
-case class RectangleZone(x1: Int, y1: Int, x2: Int, y2: Int) extends Zone {
+final case class SinglePosition(x: Int, y: Int) extends Zone
+final case class RectangleZone(x1: Int, y1: Int, x2: Int, y2: Int) extends Zone {
   //on genere tout les pos dans la zone
   def positions: List[(Int, Int)] = {
     val minX = math.min(x1, x2)
@@ -25,7 +25,7 @@ case class RectangleZone(x1: Int, y1: Int, x2: Int, y2: Int) extends Zone {
   }
 }
 
-case class Instruction private(
+final case class Instruction private(
   time: Int,
   action: Action,
   color: Color,
@@ -40,9 +40,9 @@ case class Instruction private(
 object Instruction {
   def create(time: Int, action: Action, color: Color, zone: Zone): Either[String, Instruction] = {
     if (time < 0) {
-      Left("Time must be non-negative")
+      Left[String, Instruction]("Time must be non-negative")
     } else {
-      Right(Instruction(time, action, color, zone))
+      Right[String, Instruction](Instruction(time, action, color, zone))
     }
   }
 }
